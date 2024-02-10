@@ -1,0 +1,19 @@
+// Input (FIFO policy, capacity = 3)
+// The number in parenthesis next to cache entries denotes the modifed bit
+SET file1.txt file1 // Miss (file1.txt (1))
+SET file2.txt file2 // Miss (file1.txt (1), file2.txt (1))
+SET file3.txt file3 this is // Miss (file1.txt (1), file2.txt (1), file3.txt (1))
+GET file1.txt // Hit
+GET file2.txt // Hit
+GET file3.txt // Hit
+// Upon flush, all cache entries written to disk since they have modified bit = 1
+
+// Expected Output
+// All GET requests are hits
+GET COUNT (CACHE): 3
+GET COUNT (DISK): 0
+GET CACHE HIT RATE: 100%
+// All SET requests are misses
+SET COUNT (CACHE): 3 
+SET COUNT (DISK): 3
+SET CACHE HIT RATE: 0%

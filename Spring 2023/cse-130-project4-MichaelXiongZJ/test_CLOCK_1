@@ -1,0 +1,39 @@
+// Input (CLOCK policy, capacity = 3)
+// This test assumes the following files exist: file1.txt, file2.txt, file3.txt
+// The cursor is indicated with ">"
+// The first bit after each entry is the "dirty" bit and the second is the "referenced" bit
+GET file1.txt // Miss (get disk count += 1) 
+// Cache: (>file1.txt (0, 1))
+GET file2.txt // Miss (get disk count += 1)
+// Cache: (>file1.txt (0, 1), file2.txt (0, 1))
+GET file3.txt // Miss (get disk count += 1)
+// Cache: (>file1.txt (0, 1), file2.txt (0, 1), file3.txt (0, 1))
+GET file1.txt // Hit - cache remains the same
+// Cache: (>file1.txt (0, 1), file2.txt (0, 1), file3.txt (0, 1))
+GET file3.txt // Hit - cache remains the same
+// Cache: (>file1.txt (0, 1), file2.txt (0, 1), file3.txt (0, 1))
+SET file4.txt HI // Cache full - Perform cursor moves and evict clean entry file1.txt
+// (>file1.txt (0, 1), file2.txt (0, 1), file3.txt (0, 1))
+// (file1.txt (0, 0), >file2.txt (0, 1), file3.txt (0, 1))
+// (file1.txt (0, 0), file2.txt (0, 0), >file3.txt (0, 1))
+// (>file1.txt (0, 0), file2.txt (0, 0), file3.txt (0, 0))
+// Final Cache: (>file4.txt (1, 1), file2.txt (0, 0), file3.txt (0, 0))
+GET file2.txt // Hit - change ref bit to 1
+// Cache: (>file4.txt (1, 1), file2.txt (0, 1), file3.txt (0, 0))
+SET file3.txt hello // In cache - Change reference and dirty bits to 1
+// Cache: (>file4.txt (1, 1), file2.txt (0, 1), file3.txt (1, 1))
+GET file1.txt // Miss - Cycle around and evict dirty entry file4.txt (get disk count += 1, set disk count += 1)
+// (>file4.txt (1, 1), file2.txt (0, 1), file3.txt (1, 1))
+// (file4.txt (1, 0), >file2.txt (0, 1), file3.txt (1, 1))
+// (file4.txt (1, 0), file2.txt (0, 0), >file3.txt (1, 1))
+// (>file4.txt (1, 0)), file2.txt (0, 0), file3.txt (1, 0))
+// Final cache: (>file1.txt (0, 1)), file2.txt (0, 0), file3.txt (1, 0))
+// Upon flush on exit, only file3.txt is written to disk since its modifed bit is 1 (set disk count += 1)
+
+// Expected Output
+GET COUNT (CACHE): 7
+GET COUNT (DISK): 4
+GET CACHE HIT RATE: 42.85% // 3/7 ~ 42.85%
+SET COUNT (CACHE): 2
+SET COUNT (DISK): 2
+SET CACHE HIT RATE: 0% // No SET operations reduced the number of eventual disk writes

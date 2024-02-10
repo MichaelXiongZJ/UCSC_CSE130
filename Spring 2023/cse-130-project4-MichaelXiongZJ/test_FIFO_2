@@ -1,0 +1,24 @@
+// Input (FIFO policy, capacity = 3)
+SET file1.txt file1 // Miss (file1.txt (1))
+SET file2.txt file2 // Miss (file1.txt (1), file2.txt (1))
+SET file3.txt file3 this is // Miss (file1.txt (1), file2.txt (1), file3.txt (1))
+SET file4.txt file4 is this // Miss: file1.txt evicted from cache, written to disk since it's new (set disk count += 1)
+// Cache: (file2.txt (1), file3.txt (1), file4.txt (1))
+GET file1.txt // Miss: fetched from disk and placed in cache, evicting file2.txt which is written to disk (get disk count += 1, set disk count += 1)
+// Cache: (file3.txt (1), file4.txt (1), file1.txt (0))
+GET file2.txt // Miss: fetched from disk and placed in cache, evicting file3.txt which is written to disk get disk count += 1, set disk count += 1)
+// Cache: (file4.txt (1), file1.txt (0), file2.txt (0))
+GET file4.txt // Hit
+SET file4.txt HI // Hit
+SET file4.txt HEY // Hit
+GET file1.txt // Hit
+// Upon flush on exit, file4 written to disk since modifed bit = 1 (set disk count += 1)
+// but file1 and file2 aren't written since their modified bits = 0 
+
+// Expected Output
+GET COUNT (CACHE): 4
+GET COUNT (DISK): 2
+GET CACHE HIT RATE: 50% // 2/4 = 50%
+SET COUNT (CACHE): 6
+SET COUNT (DISK): 4
+SET CACHE HIT RATE: 33% // 2/6 ~ 33%

@@ -1,0 +1,30 @@
+// Input (LRU policy, capacity = 3)
+// The first bit next to cache entries denotes the modifed bit, and they;re in order of how recently used they are from left to right (right = more recently used)
+// This test assumes the following files exist: file1.txt, file2.txt, file3.txt
+GET file1.txt // Miss (get disk count += 1) 
+// Cache: (file1.txt (0))
+GET file2.txt // Miss (get disk count += 1)
+// Cache: (file1.txt (0), file2.txt (0))
+GET file3.txt // Miss (get disk count += 1)
+// Cache: (file1.txt (0), file2.txt (0), file3.txt (0))
+GET file1.txt // Hit - reorder cache for LRU
+// Cache: (file2.txt (0), file3.txt (0), file1.txt (0))
+GET file3.txt // Hit - reorder cache for LRU
+// Cache: (file2.txt (0), file1.txt (0), file3.txt (0))
+SET file4.txt HI // Miss - replace LRU entry file2.txt (set disk count += 0)
+// Cache: (file1.txt (0), file3.txt (0), file4.txt (1))
+GET file2.txt // Miss - replace LRU entry file1.txt (set disk count += 0, get disk count += 1)
+// Cache: (file3.txt (0), file4.txt (1), file2.txt (0))
+SET file2.txt hello // Hit on most recently used entry
+// Cache: (file3.txt (0), file4.txt (1), file2.txt (1))
+GET file1.txt // Miss - replace LRU entry file3.txt (get disk count += 1, set disk count += 0)
+// Cache: (file4.txt (1), file2.txt (1), file1.txt (0))
+// Upon flush on exit, only file4 and file2 are written to disk since their modifed bits = 1 (set disk count += 2)
+
+// Expected Output
+GET COUNT (CACHE): 7
+GET COUNT (DISK): 5
+GET CACHE HIT RATE: 28.57% // 2/7 ~ 28.57%
+SET COUNT (CACHE): 2
+SET COUNT (DISK): 2
+SET CACHE HIT RATE: 0%
